@@ -584,6 +584,10 @@ private fun bind(): ILibUring {
         linker, symbolLookup, "io_uring_prep_waitid",
         ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT
     )
+    val io_uring_get_sqe = loadUringNativeFunction(
+        linker, symbolLookup, "io_uring_get_sqe",
+        ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG
+    )
 
     val spent = System.currentTimeMillis() - start
     val result = object : ILibUring {
@@ -1076,6 +1080,10 @@ private fun bind(): ILibUring {
 
         override fun io_uring_prep_waitid(sqe: Ptr, idtype: Int, id: Int, infop: Ptr, options: Int, flags: Int) {
             io_uring_prep_waitid!!.invokeExact(sqe, idtype, id, infop, options, flags)
+        }
+
+        override fun io_uring_get_sqe(ring: Ptr): Ptr {
+            return io_uring_get_sqe!!.invokeExact(ring) as Ptr
         }
     }
     _instance = result
