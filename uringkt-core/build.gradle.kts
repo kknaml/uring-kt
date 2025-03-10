@@ -9,6 +9,7 @@ kotlin {
         main {
             dependencies {
                 api(project(":uringkt-binding"))
+                api(libs.kotlinx.coroutines.core)
             }
         }
     }
