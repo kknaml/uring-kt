@@ -10,6 +10,10 @@ public class Ring private constructor(
     public val ptr: Ptr
 ) : Closeable {
 
+    public fun init() {
+        ILibUring.io_uring_queue_init(1024, ptr, 0) // TODO
+    }
+
     public fun getSqe(): Sqe {
         return Sqe(ILibUring.io_uring_get_sqe(ptr))
     }

@@ -1,15 +1,19 @@
-package kkuring.util
+package kkuring.runtime
 
 import kkuring.Cqe
 import kkuring.Ring
+import kkuring.submitNop
+import kotlinx.coroutines.CancellableContinuation
 import uringkt.binding.ILibUring
 import uringkt.binding.KKUnsafe
 import uringkt.binding.PtrHelper
 import uringkt.binding.pointedLong
 import java.io.Closeable
 import java.util.concurrent.ArrayBlockingQueue
-
-internal val localRing: ThreadLocal<Ring> = ThreadLocal()
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
+import kotlin.coroutines.resume
 
 internal class KKUringThread() : Thread(), Closeable {
 
@@ -19,41 +23,63 @@ internal class KKUringThread() : Thread(), Closeable {
 
     internal val queue = ArrayBlockingQueue<Runnable>(1024)
 
-    internal var ring: Ring? = null
+    internal var context: KKUringContext? = null
 
     private var cqePtr = KKUnsafe.theUnsafe.allocateMemory(8)
+    private val lock = ReentrantLock()
 
-    fun notify() {
+    internal var latch: CountDownLatch? = null
+
+    fun notifyNop() {
         if (queue.isEmpty()) return
         // TODO send NOP to this.ring
+        lock.withLock {
+            println("!!!!! $this $context")
+            context!!.ring.submitNop(-1234)
+        }
+    }
+
+    fun stop(cause: Throwable? = null) {
+        lock.withLock {
+            context!!.ring.submitNop(-1235)
+        }
     }
 
     override fun run() {
-        val ring = Ring.alloc()
-        this.ring = ring
-        localRing.set(ring)
+        val context = KKUringContext(Ring.alloc())
+        context.ring.init()
+        this.context = context
+        println("Save context $this $context")
+        localContext.set(context)
+
+        latch!!.countDown()
+        latch = null
+
         try {
             while (true) {
                 try {
                     val poll = queue.poll()
                     if (poll != null) {
-                        poll.run()
+                        lock.withLock { poll.run() }
                     } else {
                         handleRingEvent()
                     }
+                } catch (e: KKUringCancel) {
+                    // TODO log
+                    break
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
         } finally {
-            this.ring = null
-            localRing.get().close()
-            localRing.set(null)
+            this.context = null
+            localContext.get().ring.close()
+            localContext.set(null)
         }
     }
 
     private fun handleRingEvent() {
-        val wait = ILibUring.io_uring_wait_cqe(ring!!.ptr, cqePtr)
+        val wait = ILibUring.io_uring_wait_cqe(context!!.ring.ptr, cqePtr)
         if (wait != 0) {
             // TODO check -ETIME or error
         } else {
@@ -67,8 +93,17 @@ internal class KKUringThread() : Thread(), Closeable {
         }
         val cqeObj = Cqe(cqe)
         val data = cqeObj.getUserData()
+        if (data == -1234L) {
+            return // nop from notifyNop
+        }
+        if (data == -1235L) {
+            throw KKUringCancel("canceled")
+        }
         val res = cqeObj.getRes()
-        // TODO get continuation and resume data
+        val continuation = context!!.getAndRemove(data) as CancellableContinuation<Int>
+        synchronized(this) {
+            continuation.resume(res)
+        }
     }
 
     override fun close() {
