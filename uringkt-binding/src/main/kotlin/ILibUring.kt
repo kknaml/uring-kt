@@ -96,6 +96,8 @@ public interface ILibUring {
     public fun io_uring_prep_poll_add(sqe: Ptr, fd: Int, pollMask: Int)
     public fun io_uring_prep_poll_remove(sqe: Ptr, userData: Long)
     public fun io_uring_prep_timeout(sqe: Ptr, ts: Ptr, count: Int, flags: Int)
+    public fun io_uring_prep_read(sqe: Ptr, fd: Int, buf: Ptr, nbytes: Int, offset: Long)
+    public fun io_uring_prep_write(sqe: Ptr, fd: Int, buf: Ptr, nbytes: Int, offset: Long)
     public fun io_uring_prep_accept(sqe: Ptr, fd: Int, addr: Ptr, addrlen: Ptr, flags: Int)
     public fun io_uring_prep_connect(sqe: Ptr, fd: Int, addr: Ptr, addrlen: Int)
     public fun io_uring_prep_close(sqe: Ptr, fd: Int)
@@ -120,6 +122,7 @@ public interface ILibUring {
     public fun io_uring_prep_ftruncate(sqe: Ptr, fd: Int, len: Long)
     public fun io_uring_prep_cmd_discard(sqe: Ptr, fd: Int, offset: Long, nbytes: Long)
     public fun io_uring_prep_waitid(sqe: Ptr, idtype: Int, id: Int, infop: Ptr, options: Int, flags: Int)
+    public fun io_uring_prep_cancel(sqe: Ptr, userData: Ptr, flags: Int)
 
     public fun io_uring_get_sqe(ring: Ptr): Ptr
 

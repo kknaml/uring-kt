@@ -588,6 +588,18 @@ private fun bind(): ILibUring {
         linker, symbolLookup, "io_uring_get_sqe",
         ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG
     )
+    val io_uring_prep_read = loadVoidUringNativeFunction(
+        linker, symbolLookup, "io_uring_prep_read",
+        ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG
+    )
+    val io_uring_prep_write = loadVoidUringNativeFunction(
+        linker, symbolLookup, "io_uring_prep_write",
+        ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG
+    )
+    val io_uring_prep_cancel = loadVoidUringNativeFunction(
+        linker, symbolLookup, "io_uring_prep_cancel",
+        ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG, ValueLayout.JAVA_INT
+    )
 
     val spent = System.currentTimeMillis() - start
     val result = object : ILibUring {
@@ -957,6 +969,14 @@ private fun bind(): ILibUring {
             io_uring_prep_timeout!!.invokeExact(sqe, ts, count, flags)
         }
 
+        override fun io_uring_prep_read(sqe: Ptr, fd: Int, buf: Ptr, nbytes: Int, offset: Long) {
+            io_uring_prep_read!!.invokeExact(sqe, fd, buf, nbytes, offset)
+        }
+
+        override fun io_uring_prep_write(sqe: Ptr, fd: Int, buf: Ptr, nbytes: Int, offset: Long) {
+            io_uring_prep_write!!.invokeExact(sqe, fd, buf, nbytes, offset)
+        }
+
         override fun io_uring_prep_accept(sqe: Ptr, fd: Int, addr: Ptr, addrlen: Ptr, flags: Int) {
             io_uring_prep_accept!!.invokeExact(sqe, fd, addr, addr, flags)
         }
@@ -1084,6 +1104,10 @@ private fun bind(): ILibUring {
 
         override fun io_uring_get_sqe(ring: Ptr): Ptr {
             return io_uring_get_sqe!!.invokeExact(ring) as Ptr
+        }
+
+        override fun io_uring_prep_cancel(sqe: Ptr, userData: Ptr, flags: Int) {
+            TODO("Not yet implemented")
         }
     }
     _instance = result

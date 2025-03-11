@@ -12,11 +12,11 @@ public value class KernelTimespec private constructor(
     }
 
     public fun getSec(): Long {
-        return ptrHelper.pointedLong().swapEndian()
+        return ptrHelper.pointedLong()
     }
 
     public fun getNsec(): Long {
-        return ptrHelper[8].pointedLong().swapEndian()
+        return ptrHelper[8].pointedLong()
     }
 
     public fun setSec(sec: Long) {

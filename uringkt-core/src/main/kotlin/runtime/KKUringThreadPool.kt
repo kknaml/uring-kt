@@ -1,5 +1,6 @@
 package kkuring.runtime
 
+import kkuring.cancel
 import kkuring.nativetype.KernelTimespec
 import kotlinx.coroutines.CancellableContinuation
 import uringkt.binding.ILibUring
@@ -35,10 +36,15 @@ internal class KKUringThreadPool(
         thread.queue.add {
             val context = localContext.get()
             val sqe = context.ring.getSqe()
-            sqe.setUserData(context.save(continuation))
+            val key = context.save(continuation)
+            sqe.setUserData(key)
             ILibUring.io_uring_prep_timeout(sqe.raw, ts.ptrHelper.raw, 1, 0)
             context.ring.submit()
             ts.free()
+//            no need
+//            continuation.invokeOnCancellation {
+//                context.ring.cancel(key)
+//            }
         }
         thread.notifyNop()
     }
