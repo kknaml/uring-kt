@@ -34,7 +34,6 @@ internal class KKUringThread() : Thread(), Closeable {
         if (queue.isEmpty()) return
         // TODO send NOP to this.ring
         lock.withLock {
-            println("!!!!! $this $context")
             context!!.ring.submitNop(-1234)
         }
     }
@@ -49,7 +48,6 @@ internal class KKUringThread() : Thread(), Closeable {
         val context = KKUringContext(Ring.alloc())
         context.ring.init()
         this.context = context
-        println("Save context $this $context")
         localContext.set(context)
 
         latch!!.countDown()
@@ -74,16 +72,23 @@ internal class KKUringThread() : Thread(), Closeable {
         } finally {
             this.context = null
             localContext.get().ring.close()
-            localContext.set(null)
+            localContext.remove()
         }
     }
 
     private fun handleRingEvent() {
-        val wait = ILibUring.io_uring_wait_cqe(context!!.ring.ptr, cqePtr)
-        if (wait != 0) {
-            // TODO check -ETIME or error
-        } else {
-            resumeCqe(PtrHelper(cqePtr).pointedLong())
+        try {
+            val wait = ILibUring.io_uring_wait_cqe(context!!.ring.ptr, cqePtr)
+            if (wait != 0) {
+                // TODO check -ETIME or error
+                val cqe = Cqe(PtrHelper(cqePtr).pointedLong())
+                println(cqe.getRes())
+                System.err.println("Error in io_uring_wait_cqe $wait")
+            } else {
+                resumeCqe(PtrHelper(cqePtr).pointedLong())
+            }
+        } finally {
+            ILibUring.io_uring_cqe_seen(context!!.ring.ptr, PtrHelper(cqePtr).pointedLong())
         }
     }
 

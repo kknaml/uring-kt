@@ -3,11 +3,11 @@ package kkuring
 
 import kkuring.runtime.KKUringThreadPool
 import kkuring.runtime.localContext
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 
-public class UringDispatcher : CoroutineDispatcher() {
+@OptIn(InternalCoroutinesApi::class)
+public class UringDispatcher : CoroutineDispatcher(), Delay {
 
     private val threadPool = KKUringThreadPool(1)
 
@@ -21,5 +21,9 @@ public class UringDispatcher : CoroutineDispatcher() {
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         threadPool.dispatch(block)
+    }
+
+    override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
+        threadPool.addDelay(timeMillis, continuation)
     }
 }

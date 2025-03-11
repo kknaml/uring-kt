@@ -13,8 +13,10 @@ internal class KKUringContext(
     private val continuationMap = mutableMapOf<Long, CancellableContinuation<*>>()
     private var count: Long = 0L
 
-    fun save(continuation: CancellableContinuation<*>) {
-        continuationMap[count++] = continuation
+    fun save(continuation: CancellableContinuation<*>): Long {
+        val key = count++
+        continuationMap[key] = continuation
+        return key
     }
 
     fun getAndRemove(key: Long): CancellableContinuation<*>? {
