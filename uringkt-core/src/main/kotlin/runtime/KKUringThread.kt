@@ -32,9 +32,9 @@ internal class KKUringThread() : Thread(), Closeable {
 
     fun notifyNop() {
         if (queue.isEmpty()) return
-        // TODO send NOP to this.ring
-        lock.withLock {
+        if (lock.tryLock()) {
             context!!.ring.submitNop(-1234)
+            lock.unlock()
         }
     }
 
@@ -106,9 +106,7 @@ internal class KKUringThread() : Thread(), Closeable {
         }
         val res = cqeObj.getRes()
         val continuation = context!!.getAndRemove(data) as CancellableContinuation<Int>
-        synchronized(this) {
-            continuation.resume(res)
-        }
+        lock.withLock { continuation.resume(res) }
     }
 
     override fun close() {
